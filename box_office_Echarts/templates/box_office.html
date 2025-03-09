@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dynamic Ranking Line Chart of Box Office</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <style>
+      #main {
+        width: 90%;
+        height: 600px;
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main"></div>
+
+    <script>
+      var chartDom = document.getElementById("main");
+      var myChart = echarts.init(chartDom);
+      var option;
+
+      // 请求后端接口获取数据
+      fetch("/data")
+        .then((response) => {
+          console.log("Response status:", response.status);
+          return response.json();
+        })
+        .then((data) => {
+          console.log("Data from /data:", data);
+
+          // ECharts 配置
+          option = {
+            title: {
+              text: "Dynamic Ranking Line Chart of Box Office",
+              left: "center",
+            },
+            tooltip: {
+              trigger: "axis",
+              axisPointer: { type: "line" },
+            },
+            legend: {
+              data: data.series.map((s) => s.name), // 使用 data.series 而不是 series
+              top: 30,
+            },
+            xAxis: {
+              type: "category",
+              data: data.dates, // 使用 data.dates 而不是 dates
+              boundaryGap: false,
+            },
+            yAxis: {
+              type: "value",
+              name: "Box Office (10,000 RMB)",
+            },
+            series: data.series, // 使用 data.series 而不是 series
+            animationDuration: 5000,
+            animationEasing: "linear",
+          };
+
+          myChart.setOption(option);
+
+          // 动态更新数据
+          let idx = 0;
+          let interval = setInterval(() => {
+            idx += 1; // 每次加 1
+            if (idx >= data.dates.length) {
+              // 如果跑到最后一个点
+              clearInterval(interval); // 停住，不再循环
+              return; // 退出函数
+            }
+            myChart.setOption({
+              series: data.series.map((s) => ({
+                ...s,
+                data: s.data.slice(0, idx + 1),
+              })),
+            });
+          }, 100); // 动画速度，可以调快一点比如 50 或慢一点比如 200
+        })
+        .catch((error) => console.error("Error fetching data:", error)); // 结尾的 }); 这里才对
+    </script>
+  </body>
+</html>
